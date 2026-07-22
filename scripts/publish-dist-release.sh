@@ -8,6 +8,10 @@
 # existing version branch. If the release tag already exists in the target
 # repo, the script aborts with an error.
 #
+# The version published to the target repo (commit message and tag) has its
+# "-p<digits>" build suffix stripped (e.g. "6.4.6-p2607131241" -> "6.4.6").
+# "-rc..." suffixes are release-candidate markers and are kept as-is.
+#
 # Usage:
 #   publish-dist-release.sh --tag <version> --dist <path> --target-repo <url> [--commit-message <msg>]
 
@@ -78,14 +82,22 @@ fi
 MAJOR="${BASH_REMATCH[1]}"
 MINOR="${BASH_REMATCH[2]}"
 TARGET_BRANCH="$MAJOR.$MINOR"
-COMMIT_MESSAGE="${COMMIT_MESSAGE:-Release $TAG}"
 
-echo "Release tag:     $TAG"
-echo "Target branch:   $TARGET_BRANCH"
+# Strip the "-p<digits>" build suffix for the published version; "-rc..." is kept as-is.
+PUBLISH_VERSION="${TAG#v}"
+if [[ "$PUBLISH_VERSION" =~ ^(.+)-p[0-9]+$ ]]; then
+    PUBLISH_VERSION="${BASH_REMATCH[1]}"
+fi
+
+COMMIT_MESSAGE="${COMMIT_MESSAGE:-Release $PUBLISH_VERSION}"
+
+echo "Release tag:      $TAG"
+echo "Published version: $PUBLISH_VERSION"
+echo "Target branch:    $TARGET_BRANCH"
 
 # Fail fast if this version has already been published, before touching anything.
-if [[ -n "$(git ls-remote --tags "$TARGET_REPO" "refs/tags/$TAG")" ]]; then
-    echo "Error: version '$TAG' already exists in the target repository." >&2
+if [[ -n "$(git ls-remote --tags "$TARGET_REPO" "refs/tags/$PUBLISH_VERSION")" ]]; then
+    echo "Error: version '$PUBLISH_VERSION' already exists in the target repository." >&2
     exit 1
 fi
 
@@ -155,15 +167,15 @@ cp -a "$DIST_PATH"/. .
 git add -A
 
 if git diff --cached --quiet; then
-    echo "Error: dist content for '$TAG' is identical to the current state of '$TARGET_BRANCH', nothing to publish." >&2
+    echo "Error: dist content for '$PUBLISH_VERSION' is identical to the current state of '$TARGET_BRANCH', nothing to publish." >&2
     exit 1
 fi
 
 git commit --quiet -m "$COMMIT_MESSAGE"
-git tag "$TAG"
+git tag "$PUBLISH_VERSION"
 
-echo "Pushing branch '$TARGET_BRANCH' and tag '$TAG'..."
+echo "Pushing branch '$TARGET_BRANCH' and tag '$PUBLISH_VERSION'..."
 git push origin "$TARGET_BRANCH"
-git push origin "$TAG"
+git push origin "$PUBLISH_VERSION"
 
-echo "Done: published '$TAG' to branch '$TARGET_BRANCH'."
+echo "Done: published '$PUBLISH_VERSION' to branch '$TARGET_BRANCH'."
