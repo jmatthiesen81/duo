@@ -70,3 +70,26 @@ See [`.gitlab-ci.yml`](.gitlab-ci.yml) for a demo pipeline: it builds the
 project, then on tag pipelines runs `publish-dist-release.sh` to push the
 build output to a separate distribution repository configured via the
 `DIST_REPO_URL` CI/CD variable.
+
+## Docker image
+
+A [`Dockerfile`](Dockerfile) packages the script with `bash` and `git` so it
+can be run without any local setup:
+
+```sh
+docker run --rm \
+  -v "$(pwd)/dist:/dist" \
+  ghcr.io/jmatthiesen81/duo:latest \
+  --tag 6.4.6-p2607131241 \
+  --dist /dist \
+  --target-repo https://oauth2:$DIST_REPO_TOKEN@gitlab.example.com/group/dist-repo.git
+```
+
+## GitHub Actions
+
+- [`.github/workflows/release.yml`](.github/workflows/release.yml) creates a
+  GitHub Release (with auto-generated notes) whenever a version tag is
+  pushed; tags containing `-rc` are marked as a pre-release.
+- [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml)
+  builds the `Dockerfile` and pushes it to the GitHub Container Registry
+  (`ghcr.io/<owner>/<repo>`) tagged with the pushed tag and `latest`.
