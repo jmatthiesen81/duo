@@ -91,9 +91,9 @@ fi
 
 COMMIT_MESSAGE="${COMMIT_MESSAGE:-Release $PUBLISH_VERSION}"
 
-echo "Release tag:      $TAG"
-echo "Published version: $PUBLISH_VERSION"
-echo "Target branch:    $TARGET_BRANCH"
+echo "Release tag:     $TAG"
+echo "Publish version: $PUBLISH_VERSION"
+echo "Target branch:   $TARGET_BRANCH"
 
 # Fail fast if this version has already been published, before touching anything.
 if [[ -n "$(git ls-remote --tags "$TARGET_REPO" "refs/tags/$PUBLISH_VERSION")" ]]; then
