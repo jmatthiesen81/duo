@@ -103,9 +103,14 @@ fi
 
 WORKDIR="$(mktemp -d)"
 cleanup() {
+    git config --global --unset-all safe.directory "$WORKDIR" >/dev/null 2>&1 || true
     rm -rf "$WORKDIR"
 }
 trap cleanup EXIT
+
+# Containers commonly run git as a UID that doesn't own $WORKDIR, which git
+# refuses to touch as a safety measure ("dubious ownership") unless allow-listed.
+git config --global --add safe.directory "$WORKDIR"
 
 echo "Cloning target repository..."
 git clone --no-tags --quiet "$TARGET_REPO" "$WORKDIR"
